@@ -1,0 +1,22 @@
+{
+    "name": "seborromeo/website-backend",
+    "description": "Lightweight PHP RESTful API",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Sebastian Borromeo",
+            "email": "sebastiangborromeo@gmail.com"
+        }
+    ],
+    "require": {
+        "monolog/monolog": "1.25.1",
+        "firebase/php-jwt": "^6.10",
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
