@@ -13,8 +13,11 @@ class AuthController {
         $username = $req->body->user;
         $pass = $req->body->pass;
 
-        $user = $authService->validateCredentials($username, $pass);
-        $token = $authService->generateToken($user['id'], $user['role']);
+        try {
+            $user = $authService->validateCredentials($username, $pass);
+            $token = $authService->generateToken($user['id'], $user['role']);
+        } catch (\Exception $e) { $next($e); }
+        
         return $res->toJSON([
             'message' => 'Successful credentials',
             'data' => [ 'token' => $token ]

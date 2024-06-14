@@ -17,31 +17,33 @@ class AuthMiddleware {
             $req->extraProperties['userRole'] = $payload->userRole;
         } catch (\Exception $e) { /* Ignored */ }
 
-        return $next($req, $res);
+        return $next();
     }
 
     public static function strictAuthMiddleware(Request $req, Response $res, callable $next) {
         $db = DBConnect::getDB();
         $authService = new AuthService($db, $_ENV['SECRET_KEY']);
 
-        $payload = $authService->validateToken();
+        try {
+            $payload = $authService->validateToken();
 
-        $req->extraProperties['userId'] = $payload->userId;
-        $req->extraProperties['userRole'] = $payload->userRole;
+            $req->extraProperties['userId'] = $payload->userId;
+            $req->extraProperties['userRole'] = $payload->userRole;
+        } catch (\Exception $e) { return $next($e); }
           
-        return $next($req, $res);
+        return $next();
     }
 
     public static function checkRole(array $roles) {
         return function (Request $req, Response $res, callable $next) use ($roles) {
             if(!$req->extraProperties['userRole'])
-                throw new \Exception("Unauthorized", 401);
+                $next(new \Exception("Unauthorized", 401));
 
             $role = $req->extraProperties['userRole'];
             if(in_array($role, $roles))
-                return $next($req, $res);
+                return $next();
 
-            throw new \Exception("Forbidden for role " . $role, 403);
+            $next(new \Exception("Forbidden for role " . $role, 403));
         };
     }
 }

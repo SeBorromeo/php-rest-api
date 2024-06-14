@@ -6,8 +6,7 @@ use Monolog\Handler\StreamHandler;
 class Logger extends \Monolog\Logger {
     private static $loggers = [];
 
-    public function __construct($key = "app", $config = null)
-    {
+    public function __construct($key = "app", $config = null) {
         parent::__construct($key);
 
         if (empty($config)) {
@@ -21,8 +20,7 @@ class Logger extends \Monolog\Logger {
         $this->pushHandler(new StreamHandler($config['logFile'], $config['logLevel']));
     }
 
-    public static function getInstance($key = "app", $config = null)
-    {
+    public static function getInstance($key = "app", $config = null) {
         if (empty(self::$loggers[$key])) {
             self::$loggers[$key] = new Logger($key, $config);
         }
@@ -30,8 +28,7 @@ class Logger extends \Monolog\Logger {
         return self::$loggers[$key];
     }
 
-    public static function enableSystemLogs()
-    {
+    public static function enableSystemLogs() {
 
         $LOG_PATH = Config::get('LOG_PATH', __DIR__ . '/../../logs');
 

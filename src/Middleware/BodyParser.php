@@ -13,7 +13,7 @@ class BodyParser {
             $req->body = $decoded;
         }
 
-        return $next($req, $res);
+        return $next();
     }
 
     public static function urlencoded(Request $req, Response $res, callable $next) {
@@ -25,6 +25,6 @@ class BodyParser {
             $req->body = $body;
         }
 
-        return $next($req, $res);
+        return $next();
     }
 }

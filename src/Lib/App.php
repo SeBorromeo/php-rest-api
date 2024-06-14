@@ -5,7 +5,8 @@ class App {
     private static $routes = [];
     private static $middlewares = [];
 
-    public static function run() {
+    public static function run()
+    {
         Logger::enableSystemLogs();
         self::matchRoute();
     }
@@ -65,6 +66,8 @@ class App {
             $uri = substr($uri, strlen(self::$basePath));
         }
 
+        $res = new Response();
+
         if (isset(self::$routes[$method])) {
             foreach (self::$routes[$method] as $routeUrl => $routeInfo) {
                 // Use named subpatterns in the regular expression pattern to capture each parameter value separately
@@ -74,27 +77,32 @@ class App {
                     $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY); // Only keep named subpattern matches
                     
                     $req = new Request($params);
-                    $res = new Response();
 
                     try {
                         $middlewareStack = MiddlewareHandler::configureMiddlewareStack(array_merge(self::$middlewares, $routeInfo['middlewares']), $routeInfo['target']);
                         $middlewareStack($req, $res);
-                    } catch(\PDOException  $e) {
-                        echo "Database Error: " . $e->getMessage();
-                    } catch(\Exception $e) {
-                        self::throwError($res, $e->getMessage(), $e->getCode());
+                    } catch(\Throwable $e) {
+                        if($_ENV['ENVIRONMENT'] === 'development') {
+                            $res->status(500)->toJSON(['error' => [
+                                'code' => 500,
+                                'message' => $e->getMessage(),
+                                'stack' => $e->getTraceAsString()
+                            ]]);
+                        } else {
+                            self::throwError($res, 'Internal Server Error', 500);
+                        }
                     }
                     return;
                 }
             }
         }
-        throw new \Exception('Route not found', 404);
+        self::throwError($res, 'Not Found', 404);
     }
 
     public static function throwError(Response $res, string $message, int $code) {
         $res->status($code)->toJSON(['error' => [
             'code' => $code,
-            'message' => $message
+            'message' => $message,
         ]]);
     }
 }
