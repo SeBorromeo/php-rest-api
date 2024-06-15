@@ -3,6 +3,7 @@
 use App\Lib\Request;
 use App\Lib\Response;
 use App\Lib\DBConnect;
+use App\Lib\Logger;
 use App\Services\AuthService;
 
 class AuthController {
@@ -18,6 +19,8 @@ class AuthController {
             $token = $authService->generateToken($user['id'], $user['role']);
         } catch (\Exception $e) { $next($e); }
         
+        Logger::getInstance()->info("$username successfully logged in");
+
         return $res->toJSON([
             'message' => 'Successful credentials',
             'data' => [ 'token' => $token ]
