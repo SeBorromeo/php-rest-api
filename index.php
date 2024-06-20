@@ -29,4 +29,7 @@ App::get('/', function (Request $req, Response $res) {
 $authRouter = require_once './src/Routes/AuthRouter.php';
 App::useRouter('/auth', $authRouter);
 
+$merchRouter = require_once './src/Routes/MerchRouter.php';
+App::useRouter('/merch', $merchRouter);
+
 App::run();
