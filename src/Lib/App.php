@@ -8,6 +8,13 @@ class App {
     public static function run()
     {
         Logger::enableSystemLogs();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            // Respond with 204 No Content for preflight requests
+            http_response_code(204);
+            exit();
+        }
+        
         self::matchRoute();
     }
 
