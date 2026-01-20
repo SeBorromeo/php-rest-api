@@ -53,5 +53,4 @@ class MiddlewareHandler {
         $numParams = $reflection->getNumberOfParameters();
         return $numParams;
     }
-    
 }
