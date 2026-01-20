@@ -32,6 +32,33 @@ class Validator {
         $this->conditions[] = ['func' => $functionName . 'Helper', 'args' => $arguments, 'errMsg' => 'Invalid Value'];
         return $this;
     }
+
+    // Recursive function to check if wildcard path exists
+    private static function checkPath($array, $keys) {
+        if(count($keys) == 0) 
+            return $array;
+
+        $currentKey = array_shift($keys);
+        if($currentKey == '*') {
+            $fieldValues = new ValidatorFieldValues();
+
+            foreach($array as $item) {
+                $fieldValues->addFieldValue(self::checkPath($item, $keys));
+            }
+            return $fieldValues;
+        }
+        else if(isset($array->{$currentKey})) {
+            return self::checkPath($array->{$currentKey}, $keys);
+        } else {
+            return null;
+        }
+    }
+
+    private static function getEmptyErrMsg($conditions) {
+        return array_filter($conditions, function($condition) {
+            return $condition['func'] === 'notEmptyHelper';
+        })[0]['errMsg'];
+    }
     
     public static function validate(array $rules) {
         return function(Request $req, Response $res, callable $next) use ($rules) {
@@ -40,21 +67,30 @@ class Validator {
                 $paramName = $rule->getParamName();
                 $conditions = $rule->getConditions();
 
-                $value = $req->body->{$paramName};
+                $paramParts = explode('.', $paramName);
 
-                //TODO: Check different parts of req depending on type
-                if($value) { // Not Empty
+                $value = self::checkPath($req->body, $paramParts);
+
+                //TODO: Check different parts of req depending on type (body vs params)
+
+                if($value instanceof ValidatorFieldValues) { // Not empty and is an array from wildcard expression
+                    foreach($value->getFieldValues() as $individualValue) {
+                        foreach($conditions as $condition) {
+                            if($condition['func'] !== 'notEmptyHelper' && ![Validator::class, $condition['func']]($individualValue, ...$condition['args']))  
+                                self::addValidationError($req, $individualValue, $condition['errMsg'], $paramName, 'body');  
+                            else if($rule->requiresNotEmpty() && $individualValue == null) 
+                                self::addValidationError($req, $individualValue, self::getEmptyErrMsg($conditions), $paramName, 'body');
+                        }
+                    }
+                }
+                else if($value != null) { // Not Empty
                     foreach($conditions as $condition) {
                         if($condition['func'] !== 'notEmptyHelper' && ![Validator::class, $condition['func']]($value, ...$condition['args'])) 
                             self::addValidationError($req, $value, $condition['errMsg'], $paramName, 'body');  
                     }
                 }
-                elseif($rule->requiresNotEmpty()) { //Empty and requires notEmpty
-                    $errMsg = array_filter($conditions, function($condition) {
-                        return $condition['func'] === 'notEmptyHelper';
-                    })[0]['errMsg'];
-                    self::addValidationError($req, $value, $errMsg, $paramName, 'body');
-                }
+                elseif($rule->requiresNotEmpty())  // Empty and requires notEmpty
+                    self::addValidationError($req, $value, self::getEmptyErrMsg($conditions), $paramName, 'body');
             }
             return $next();
         };
@@ -89,25 +125,44 @@ class Validator {
 
     public static function isLengthHelper($value, array $range): bool {
         $stringlength = strlen((string)$value);
-        return ($range['min'] ? $stringlength >= $range['min'] : true) && ($range['max'] ? $stringlength <= $range['max'] : true);
+        return (isset($range['min']) ? $stringlength >= $range['min'] : true) && (isset($range['max']) ? $stringlength <= $range['max'] : true);
     }
 
     public static function isNumericHelper($value, array $range): bool {
         if(is_numeric($value)) 
-            return ($range['min'] ? $value >= $range['min'] : true) && ($range['max'] ? $value <= $range['max'] : true);
+            return (isset($range['min']) ? $value >= $range['min'] : true) && (isset($range['max']) ? $value <= $range['max'] : true);
 
         return false;
     }
 
     public static function isIntHelper($value, array $range): bool {
+        if(is_string($value) && filter_var($value, FILTER_VALIDATE_INT))
+            $value = (int) $value;
+
         if(is_int($value)) 
-            return ($range['min'] ? $value >= $range['min'] : true) && ($range['max'] ? $value <= $range['max'] : true);
+            return (isset($range['min']) ? $value >= $range['min'] : true) && (isset($range['max']) ? $value <= $range['max'] : true);
 
         return false;
     }
 
     public static function isInHelper($value, array $array): bool {
         return in_array($value, $array, true);
+    }
+
+    public static function isStringArrayHelper($value): bool {
+        if (!is_array($value)) 
+            return false;
+    
+        foreach ($value as $element) {
+            if (!is_string($element)) 
+                return false;
+        }
+    
+        return true;
+    }
+
+    public static function isArrayHelper($value): bool {
+        return is_array($value);
     }
 
     /* Getters */
