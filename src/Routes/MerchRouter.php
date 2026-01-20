@@ -9,9 +9,13 @@ use App\Controllers\MerchController;
 
 $merchRouter = new Router();
 
+// GET
+
 $merchRouter->get('/', [MerchController::class, 'getAllItems'], [[AuthMiddleware::class, 'authMiddleware']]);
 
 $merchRouter->get('/:id', [MerchController::class, 'getItem']);
+
+// POST
 
 $validateMerchPOST = [
     Validator::body('name')->notEmpty()->withMessage('Name is required')
@@ -34,6 +38,25 @@ $merchRouter->post('/', [MerchController::class, 'insertItem'], [
     Validator::validate($validateMerchPOST)
 ]);
 
+// REORDER
+
+$validateMerchReorder = [
+    Validator::body('items')->notEmpty()->withMessage("New order of items must be defined in array 'items'")
+        ->isArray()->withMessage('Items should be an array'),
+    Validator::body('items.*.id')->notEmpty()->withMessage("Items must all have 'id' defined")
+        ->isInt(['min' => 0])->withMessage('All item ids must be positive integers'),
+    Validator::body('items.*.position')->notEmpty()->withMessage("Items must all have 'position' defined")
+        ->isInt(['min' => 0])->withMessage('All item positions must be positive integers'),
+];
+
+$merchRouter->put('/reorder', [MerchController::class, 'reorderItems'], [
+    [AuthMiddleware::class, 'strictAuthMiddleware'],
+    AuthMiddleware::checkRole(['webmaster', 'treasurer']),
+    Validator::validate($validateMerchReorder)
+]);
+
+// PUT
+
 $validateMerchPUT = [
     Validator::body('name')->isLength(['max' => 50])->withMessage('Name must not exceed 50 characters'),
     Validator::body('category')->isLength(['max' => 50])->withMessage('Category must not exceed 50 characters'),
@@ -48,6 +71,8 @@ $merchRouter->put('/:id', [MerchController::class, 'updateItem'], [
     AuthMiddleware::checkRole(['webmaster', 'treasurer']),
     Validator::validate($validateMerchPUT)
 ]);
+
+// DELETE
 
 $merchRouter->delete('/:id', [MerchController::class, 'deleteItem'], [
     [AuthMiddleware::class, 'strictAuthMiddleware'],
