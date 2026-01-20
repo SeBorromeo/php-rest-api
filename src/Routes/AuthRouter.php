@@ -13,6 +13,8 @@ $authRouter->get('/validateToken', function (Request $req, Response $res) {
     exit;
 }, [[AuthMiddleware::class, 'strictAuthMiddleware']]);
 
+$authRouter->get('/extendToken', [AuthController::class, 'extendToken']);
+
 $authRouter->post('/login', [AuthController::class, 'login']);
 
 $authRouter->post('/logout', [AuthController::class, 'logout'], [[AuthMiddleware::class, 'authMiddleware']]);

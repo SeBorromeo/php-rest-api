@@ -2,6 +2,9 @@
 
 use \Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use \Firebase\JWT\ExpiredException;
+
+class InactiveUserException extends \Exception {}
 
 class AuthService {
     protected $dbConn;
@@ -39,16 +42,18 @@ class AuthService {
 
             if($user) {
                 if($user['active'] != 1) {
-                    throw new \Exception('Account is inactive', 403);
+                    throw new InactiveUserException('Account is inactive', 403);
                 }
                 return $payload;
             }
 
-            throw new \Exception('Credentials are invalid', 403);
+            throw new \Exception(); // If userId encoded in correct JWT does not have corresponding user in db, use generic "invalid token" error message
         } catch(ExpiredException $e) {
             throw new \Exception('Token has expired', 403);
+        } catch (InactiveUserException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            throw new \Exception('Authentication failed', 401);
+            throw new \Exception('Authentication failed, invalid token', 401);
         }
     }
 
@@ -61,7 +66,7 @@ class AuthService {
         $payload = [
             'iat' => time(),
             'iss' => 'localhost',
-            'exp' => time() + (60*60),
+            'exp' => time() + (60*60), // 1 hour
             'userId' => $userId,
             'userRole' => $userRole
         ];

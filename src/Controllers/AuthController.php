@@ -7,6 +7,21 @@ use App\Lib\Logger;
 use App\Services\AuthService;
 
 class AuthController {
+    public static function extendToken(Request $req, Response $res, callable $next) {
+        $db = DBConnect::getDB();
+        $authService = new AuthService($db, $_ENV['SECRET_KEY']);
+
+        try {
+            $payload = $authService->validateToken();      
+            $newToken = $authService->generateToken($payload->userId, $payload->userRole);
+
+            return $res->toJSON([
+                'message' => 'Successfully issued new token',
+                'data' => [ 'token' => $newToken ]
+            ]);   
+        } catch (\Exception $e) { return $next(new \Exception("Can't extend token: {$e->getMessage()}", $e->getCode())); }
+    }
+
     public static function login(Request $req, Response $res) {
         $db = DBConnect::getDB();
         $authService = new AuthService($db, $_ENV['SECRET_KEY']);
