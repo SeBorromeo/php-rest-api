@@ -11,7 +11,7 @@ use App\Lib\Response;
 use App\Middleware\BodyParser;
 
 if (file_exists(__DIR__.'/.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__);
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
     $dotenv->load();
 }
 
