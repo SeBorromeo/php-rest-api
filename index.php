@@ -10,8 +10,10 @@ use App\Lib\Request;
 use App\Lib\Response;
 use App\Middleware\BodyParser;
 
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+if (file_exists(__DIR__.'/.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__);
+    $dotenv->load();
+}
 
 App::useMiddleware([BodyParser::class, 'json']);
 App::useMiddleware([BodyParser::class, 'urlencoded']);
