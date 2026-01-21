@@ -16,13 +16,12 @@ class AuthService {
     }
 
     public function validateCredentials(string $username, string $pass) {
-        $stmt = $this->dbConn->prepare("SELECT * FROM users WHERE username = :username AND password = :pass");
+        $stmt = $this->dbConn->prepare("SELECT * FROM users WHERE username = :username");
         $stmt->bindParam(":username", $username);
-        $stmt->bindParam(":pass", $pass);
         $stmt->execute();
         $user = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        if ($user) {
+        if ($user && password_verify($pass, $user['password'])) {
             if ($user['active'] != 1)
                 throw new \Exception('Account is inactive', 403);
             return $user;
