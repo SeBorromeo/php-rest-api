@@ -1,50 +1,45 @@
 <?php namespace App\Lib;
 
-use Monolog\ErrorHandler;
+use Monolog\Logger as MonoLogger;
 use Monolog\Handler\StreamHandler;
 
-class Logger extends \Monolog\Logger {
-    private static $loggers = [];
+class Logger extends MonoLogger
+{
+    private static array $loggers = [];
 
-    public function __construct($key = "app", $config = null) {
+    private function __construct(string $key, int $level)
+    {
         parent::__construct($key);
 
-        if (empty($config)) {
-            $LOG_PATH = Config::get('LOG_PATH', __DIR__ . '/../../logs');
-            $config = [
-                'logFile' => "{$LOG_PATH}/{$key}.log",
-                'logLevel' => \Monolog\Logger::DEBUG
-            ];
-        }
-
-        $this->pushHandler(new StreamHandler($config['logFile'], $config['logLevel']));
+        // stdout works everywhere (local, App Platform, serverless)
+        $this->pushHandler(
+            new StreamHandler('php://stdout', $level)
+        );
     }
 
-    public static function getInstance($key = "app", $config = null) {
-        if (empty(self::$loggers[$key])) {
-            self::$loggers[$key] = new Logger($key, $config);
+    public static function getInstance(
+        string $key = 'app',
+        int $level = MonoLogger::INFO
+    ): self {
+        if (!isset(self::$loggers[$key])) {
+            self::$loggers[$key] = new self($key, $level);
         }
 
         return self::$loggers[$key];
     }
 
-    public static function enableSystemLogs() {
+    /**
+     * Optional request logger
+     */
+    public static function logRequest(): void
+    {
+        $logger = self::getInstance('request');
 
-        $LOG_PATH = Config::get('LOG_PATH', __DIR__ . '/../../logs');
-
-        // Error Log
-        self::$loggers['error'] = new Logger('errors');
-        self::$loggers['error']->pushHandler(new StreamHandler("{$LOG_PATH}/errors.log"));
-        ErrorHandler::register(self::$loggers['error']);
-
-        // Request Log
-        $data = [
-            $_SERVER,
-            $_REQUEST,
-            trim(file_get_contents("php://input"))
-        ];
-        self::$loggers['request'] = new Logger('request');
-        self::$loggers['request']->pushHandler(new StreamHandler("{$LOG_PATH}/request.log"));
-        self::$loggers['request']->info("REQUEST", $data);
+        $logger->info('REQUEST', [
+            'method' => $_SERVER['REQUEST_METHOD'] ?? null,
+            'uri'    => $_SERVER['REQUEST_URI'] ?? null,
+            'ip'     => $_SERVER['REMOTE_ADDR'] ?? null,
+            'body'   => trim(file_get_contents('php://input'))
+        ]);
     }
 }
