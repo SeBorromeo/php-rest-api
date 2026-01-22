@@ -87,6 +87,10 @@ class App {
                         $middlewareStack = MiddlewareHandler::configureMiddlewareStack(array_merge(self::$middlewares, $routeInfo['middlewares']), $routeInfo['target']);
                         $middlewareStack($req, $res);
                     } catch(\Throwable $e) {
+                        Logger::getInstance('error')->error($e->getMessage(), [
+                            'exception' => $e
+                        ]);
+
                         if($_ENV['ENVIRONMENT'] === 'development') {
                             $res->status(500)->toJSON(['error' => [
                                 'code' => 500,

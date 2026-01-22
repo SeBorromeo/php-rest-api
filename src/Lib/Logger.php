@@ -7,22 +7,23 @@ class Logger extends MonoLogger
 {
     private static array $loggers = [];
 
-    private function __construct(string $key, int $level)
+    private function __construct(string $key)
     {
         parent::__construct($key);
 
-        // stdout works everywhere (local, App Platform, serverless)
         $this->pushHandler(
-            new StreamHandler('php://stdout', $level)
+            new StreamHandler('php://stdout', MonoLogger::INFO)
+        );
+
+        $this->pushHandler(
+            new StreamHandler('php://stderr', MonoLogger::ERROR)
         );
     }
 
-    public static function getInstance(
-        string $key = 'app',
-        int $level = MonoLogger::INFO
-    ): self {
+    public static function getInstance(string $key = 'app'): self
+    {
         if (!isset(self::$loggers[$key])) {
-            self::$loggers[$key] = new self($key, $level);
+            self::$loggers[$key] = new self($key);
         }
 
         return self::$loggers[$key];

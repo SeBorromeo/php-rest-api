@@ -9,11 +9,35 @@ use App\Lib\App;
 use App\Lib\Request;
 use App\Lib\Response;
 use App\Middleware\BodyParser;
+use App\Lib\Logger;
 
 if (file_exists(__DIR__.'/.env')) {
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
     $dotenv->load();
 }
+
+set_error_handler(function ($severity, $message, $file, $line) {
+    if ($severity === E_DEPRECATED || $severity === E_USER_DEPRECATED) {
+        return false;
+    }
+
+    if (!(error_reporting() & $severity)) {
+        return false;
+    }
+
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+set_exception_handler(function (Throwable $e) {
+    Logger::getInstance('php')->error(
+        $e->getMessage(),
+        ['file' => $e->getFile(), 'line' => $e->getLine()]
+    );
+
+    http_response_code(500);
+    echo json_encode(['error' => 'Internal Server Error']);
+});
+
 
 App::useMiddleware([BodyParser::class, 'json']);
 App::useMiddleware([BodyParser::class, 'urlencoded']);
